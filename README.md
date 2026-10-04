@@ -71,7 +71,9 @@ Copie `.env.example` para `.env.local` (não versionado) e preencha. Todas são 
 
 ```
 src/
-├── assets/logo.png                  # logo usado nos componentes (importado e hasheado)
+├── assets/
+│   ├── logo.png                     # logo usado nos componentes (importado e hasheado)
+│   └── videos/Step_1..5.mp4         # demonstração de cada passo, "scrubbada" no carrossel
 ├── components/
 │   ├── layout/
 │   │   ├── Navbar.tsx               # header fixo, menu mobile, pele por folha
@@ -81,11 +83,11 @@ src/
 │   ├── sections/
 │   │   ├── Hero.tsx                 # folha inicial: cubo 3D, datilografia, recuo no scroll
 │   │   ├── Overview.tsx + OverviewProducts.tsx
-│   │   ├── HowItWorks.tsx           # timeline de 5 passos desenhada pelo scroll
+│   │   ├── HowItWorks.tsx           # carrossel de 5 passos, com vídeo dirigido pelo scroll
 │   │   ├── Downloads.tsx + DownloadCard.tsx
 │   │   ├── Privacy.tsx · Faq.tsx
 │   │   └── Research.tsx            # folha final: origem científica do ecossistema
-│   └── ui/                          # Stack (folha), Section, Card, Button, Reveal, ShapeGrid, icons
+│   └── ui/                          # Stack (folha), Section, Card, Button, Reveal, ShapeGrid, StepCarousel, icons
 ├── config/
 │   ├── sections.ts                  # fonte única: ordem, tom, pele e rótulos das folhas
 │   ├── site.ts                      # links do autor
@@ -93,7 +95,7 @@ src/
 ├── i18n/
 │   ├── index.ts                     # detecção de idioma + metadados do documento
 │   ├── i18next.d.ts                 # tipagem estrita das chaves
-│   └── locales/{pt-BR,en}.json      # 153 chaves, paridade 1:1
+│   └── locales/{pt-BR,en}.json      # 154 chaves, paridade 1:1
 ├── lib/
 │   ├── analytics.ts                 # GA4 + Consent Mode v2 (única porta de saída)
 │   ├── useSectionTheme.ts           # tom da folha que atravessa o cabeçalho
@@ -103,6 +105,10 @@ src/
 public/img/LOGO.png                  # favicon / imagem de compartilhamento
 index.html                           # meta tags, OG, JSON-LD, <html lang>
 ```
+
+> **Vídeos dos passos.** `src/assets/videos/Step_1..5.mp4` (5 arquivos, ≈3,9 MB no total, 5–7 s cada)
+> são importados pelo Vite e saem com hash em `dist/assets/`; são eles que sustentam o carrossel da
+> seção _Como funciona_. São mudos e sem legendas — a narração é o texto ao lado de cada vídeo.
 
 ---
 

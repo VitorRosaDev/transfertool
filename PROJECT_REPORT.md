@@ -619,3 +619,106 @@ externa, camada de fundo, movimento reduzido), `useSectionTheme.test.tsx` (folha
 inicial e troca no scroll), `Navbar.test.tsx` (menu, as três peles e uma trava de regressão: o
 cabeçalho não pode voltar a animar cores) e `Footer.test.tsx` (assinatura, canais e reabertura do
 consentimento).
+
+---
+
+## 8. Cabeçalho em caixa, folha `fullBleed` e carrossel de passos
+
+Sessão posterior: o cabeçalho compartilhado de `Section` deixou de ser uma **régua fina** e virou uma
+**caixa** (`Card`), o vão até o conteúdo encolheu, e a seção **02 — Como funciona** trocou a timeline
+numerada por um **carrossel de vídeos** em tela cheia dirigido pelo scroll.
+
+### 8.1 Cabeçalho em caixa (`src/components/ui/Section.tsx`)
+
+O bloco `NN / RÓTULO` + título + subtítulo passou a viver dentro do `Card` — o mesmo primitivo de
+superfície que o Overview já usava (`rounded-2xl border border-ink-200/70 bg-surface shadow-card`).
+Nenhuma superfície nova foi criada: a moldura é a mesma dos demais cards da página.
+
+|                          | Antes                                                  | Depois                                      |
+| :----------------------- | :----------------------------------------------------- | :------------------------------------------ |
+| Moldura do cabeçalho     | `<Reveal className="border-t border-ink-200/80 pt-7">` | `<Card as="header" className="p-6 sm:p-8">` |
+| Filete                   | régua superior no `Reveal`                             | borda do próprio `Card` + `shadow-card`     |
+| Vão cabeçalho → conteúdo | `mt-12 lg:mt-16`                                       | `mt-6 lg:mt-8`                              |
+
+`as="header"` mantém a semântica de documento: a caixa **é** o `<header>` da `<section>`, e o
+`aria-labelledby` continua no `Stack` apontando para o `h2` de dentro dela. O `text-center
+lg:text-left` do `Reveal` foi preservado.
+
+### 8.2 Folha `fullBleed` (`Section` → `HowItWorks`)
+
+O carrossel precisa de `100vw` por painel, então `Section` ganhou a prop `fullBleed?: boolean`
+(padrão `false`): com ela, os filhos são renderizados **fora** da coluna `max-w-6xl`.
+
+O ajuste fino foi no respiro. Como em `fullBleed` o container abriga **só o cabeçalho**, o
+`lg:py-28` do container somava ao `mt` do conteúdo e abria um vão de ~144px — o **dobro** das outras
+seções. O padding do container passou a ser condicional:
+
+| Folha       | Padding do container        | Vão até o conteúdo |
+| :---------- | :-------------------------- | :----------------- |
+| comum       | `py-20 lg:py-28`            | `mt-6 lg:mt-8`     |
+| `fullBleed` | `pt-20 lg:pt-28` (sem `pb`) | `mt-6 lg:mt-8`     |
+
+Em `fullBleed` quem fornece o respiro inferior é o próprio conteúdo: o `HowItWorks` fecha a seção
+com a nota do `humanNote` em `pb-24 lg:pb-28`.
+
+### 8.3 Carrossel de passos (`HowItWorks.tsx` + `StepCarousel.tsx` + `assets/videos/`)
+
+A timeline vertical (linha de progresso + bolinhas `01`–`05` + quadros de captura reservados) foi
+substituída por um carrossel horizontal: cada passo é um painel de tela cheia com o **vídeo da
+demonstração** ao lado do rótulo, do título e do texto.
+
+Mecânica (`src/components/ui/StepCarousel.tsx`):
+
+- A seção gasta altura no eixo vertical (`h-[500vh]`) e um viewport `sticky top-0` prende na tela;
+  o trilho desliza em `x` de `0vw` a `-400vw` conforme o scroll (`count - 1` painéis).
+- O **mesmo progresso** (com mola, `stiffness 140 / damping 30 / mass 0.5`) "scrubba" os vídeos:
+  `currentTime = clamp((count - 1) * progresso - índice + 1, 0, 1) * duração`. Deslize e vídeo ficam
+  em sincronia e **reversíveis** no scroll. O `useMotionValueEvent` só escreve quando a diferença
+  passa de 30ms, para não brigar com o decoder.
+- Uma barra de progresso (`scaleX`) na base da tela dá a posição do carrossel.
+- **Movimento reduzido:** `useReducedMotion()` troca tudo por uma lista com `snap-x` em
+  `overflow-x-auto` e desliga o scrub — os vídeos ficam no primeiro quadro, sem animação dirigida.
+
+Mídia: `src/assets/videos/Step_1..5.mp4` — 5 arquivos, ≈3,9 MB no total, 5,0–7,0 s cada. São
+importados pelo Vite e servidos com hash (`dist/assets/Step_1-BW3rEBbe.mp4`, …). O texto ao lado é
+traduzido com a página, mas os vídeos são únicos e **mudos, sem legendas**.
+
+### 8.4 Texto da origem científica
+
+`research.body1` (pt-BR e EN) passou a nomear o trabalho como **estudo de caso acadêmico**, com o
+título entre aspas, e a descrever o gargalo como a lista conferida no galpão transcrita para o
+Atende.net. As chaves seguem em paridade 1:1 nos dois locales (154 chaves cada).
+
+### 8.5 Qualidade
+
+| Etapa      | Comando                  | Resultado                                               |
+| :--------- | :----------------------- | :------------------------------------------------------ |
+| Testes     | `npm test`               | ✅ 13 arquivos · **78/78**                              |
+| Typecheck  | `npm run typecheck`      | ✅ 0 erros                                              |
+| Lint       | `npm run lint`           | ✅ 0 problemas                                          |
+| Formatação | `npx prettier --check .` | ✅ limpo                                                |
+| Build      | `npm run build`          | ✅ ~570ms, com os 5 `.mp4` publicados em `dist/assets/` |
+
+Validação em navegador real (1440×900):
+
+| Medida                                | Resultado                                                                   |
+| :------------------------------------ | :-------------------------------------------------------------------------- |
+| Cabeçalho das 6 seções                | `<header>` semântico, `border-radius: 16px`, `padding: 32px`, `shadow-card` |
+| Fundo da caixa (folha clara / escura) | `rgb(255,255,255)` / `rgb(18,22,27)`                                        |
+| Vão cabeçalho → conteúdo              | `32px` em `lg` (e `24px` abaixo do breakpoint)                              |
+| Carrossel                             | 5 painéis, 5 vídeos (`readyState 4`, 5,0–7,0 s), wrapper de `500vh`         |
+| Scrub no meio da seção                | `[5,07 · 6,96 · 6,93 · 2,48 · 0]` s — um painel por vez                     |
+
+### 8.6 Pendências atualizadas (ver seção 5)
+
+| #   | Pendência original                                     | Situação                                                                      |
+| :-- | :----------------------------------------------------- | :---------------------------------------------------------------------------- |
+| 1   | Publicar os instaladores no repositório de releases    | ✅ resolvida — `v1.2.0` publicada; o CI builda com `VITE_RELEASES_READY=true` |
+| 2   | Definir `VITE_GA_ID`                                   | ⏳ aberta — segue opcional e inerte                                           |
+| 3   | Fornecer as capturas de tela dos 5 passos              | ✅ resolvida — o autor entregou os **vídeos**, que substituíram os quadros    |
+| 4   | Definir o domínio final e ajustar `og:image` / JSON-LD | ✅ resolvida — URL absoluta de `vitorrosadev.github.io/transfertool`          |
+| 5   | Executar o deploy no Hostinger hPanel                  | ➖ superada — a publicação é GitHub Pages via Actions (`README.md`)           |
+
+Fica em aberto, para quem voltar a mexer no carrossel: **nenhum teste cobre `StepCarousel.tsx`** —
+o controle por scroll, o scrub e o caminho de `prefers-reduced-motion` foram validados apenas em
+navegador.
