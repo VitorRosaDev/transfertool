@@ -223,7 +223,7 @@
   "research": {
     "eyebrow": "Academic research",
     "title": "TransferTool was born from scientific research.",
-    "body1": "This ecosystem is the practical part of the undergraduate thesis Automation of Logistics Processes in the Public Sector — an integrated architecture for robotic process automation in management systems. The study starts from a real bottleneck: in the central warehouse of the municipal network of Alvorada/RS, the operator manually transcribes the lists checked in the yard into the Atende.net ERP.",
+    "body1": "This ecosystem represents the practical component of the academic case study titled \"Automation of Logistics Processes in the Public Sector — an integrated architecture for robotic process automation in management systems.\" The study addresses a real-world bottleneck: at the central warehouse of the Alvorada (RS) municipal network, an operator manually transcribes lists—previously verified in the warehouse—into the Atende.net ERP system.",
     "body2": "The proposed architecture combines offline-first collection on the phone with desktop RPA automation to eliminate that retyping — without replacing the legacy system. The full article will be made available here once the research is completed.",
     "paperLabel": "Scientific article",
     "paperTitle": "Automation of Logistics Processes in the Public Sector",

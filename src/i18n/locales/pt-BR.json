@@ -223,7 +223,7 @@
   "research": {
     "eyebrow": "Pesquisa acadêmica",
     "title": "O TransferTool nasceu de uma pesquisa científica.",
-    "body1": "Este ecossistema é a parte prática da pesquisa de conclusão de curso Automação de Processos Logísticos no Setor Público — uma arquitetura integrada para automação robótica de processos em sistemas de gestão. O estudo parte de um gargalo real: no almoxarifado central da rede municipal de Alvorada/RS, o operador transcreve manualmente, para o ERP Atende.net, as listas conferidas no galpão.",
+    "body1": "Este ecossistema é a parte prática da pesquisa acadêmica de estudo de caso \"Automação de Processos Logísticos no Setor Público — uma arquitetura integrada para automação robótica de processos em sistemas de gestão\". O estudo parte de um gargalo real: no almoxarifado central da rede municipal de Alvorada/RS, o operador transcreve manualmente, para o ERP Atende.net, as listas conferidas no galpão.",
     "body2": "A arquitetura proposta une a coleta offline-first no celular à automação RPA no desktop para eliminar essa digitação — sem substituir o sistema legado. O artigo completo será disponibilizado aqui após a conclusão da pesquisa.",
     "paperLabel": "Artigo científico",
     "paperTitle": "Automação de Processos Logísticos no Setor Público",
