@@ -133,6 +133,16 @@ quina — o fim de um scrub já é o início do slide seguinte —, então não 
 mesmo progresso alimenta a barra da base (`scaleX`), e cada vídeo é "scrubbado" com `currentTime`, o
 que torna o movimento reversível ao rolar para cima.
 
+As **quinas seguem secas**: trilho, texto e barra andam no progresso cru. Quem ganha mola é só o
+vídeo — uma `useSpring` (`stiffness 170 / damping 28 / mass 0.6`) amacia o alvo antes de ele virar
+`currentTime`, para que cada evento de roda não faça o vídeo saltar de keyframe em keyframe. A
+escrita sai **uma vez por quadro** (`requestAnimationFrame`) e espera o seek anterior terminar:
+disparar em cima de um seek em curso faz o navegador cancelar o que estava pela metade. Medido no
+navegador no vídeo de 5,07 s, 50 escritas encadeadas (uma por quadro) concluíam **9 a 12** seeks e
+punham **13 ou 14** quadros na tela, com saltos de até 2,2 s; com a espera, todo seek que começa
+termina (24/24 e 21/21 numa rajada de roda) e o intervalo entre quadros fica no passo natural do
+arquivo (~0,17 s).
+
 Cada passo é emoldurado pelo aparelho em que a demonstração roda (`DeviceFrame`) — os três primeiros
 no celular (retrato `574:1280`) e os dois últimos no computador (paisagem `1202:720`). A tela tem a
 razão exata do arquivo, então o vídeo a preenche sem letterbox nem corte.
