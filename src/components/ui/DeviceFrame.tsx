@@ -38,11 +38,11 @@ function PhoneFrame({ children }: FrameProps) {
   return (
     <div
       data-device="phone"
-      className="relative h-[min(40vh,340px)] shrink-0 rounded-lg border border-white/10 bg-void-950 p-[0.6rem] shadow-lift sm:h-[min(50vh,440px)] lg:h-[min(68vh,640px)]"
+      className="relative h-[min(40vh,340px)] shrink-0 rounded-xl border border-white/10 bg-void-950 p-[0.6rem] shadow-lift sm:h-[min(50vh,440px)] lg:h-[min(68vh,640px)]"
     >
       <div
         data-screen="phone"
-        className="relative aspect-[574/1280] h-full overflow-hidden rounded-md bg-void-900"
+        className="relative aspect-[574/1280] h-full overflow-hidden rounded-lg bg-void-900"
       >
         {children}
         <span
