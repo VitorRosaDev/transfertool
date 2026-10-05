@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { Navbar } from '../components/layout/Navbar'
 
@@ -55,6 +55,20 @@ describe('Navbar', () => {
       '#privacy',
     )
     expect(within(nav).queryByRole('link', { name: /contato/i })).not.toBeInTheDocument()
+  })
+
+  it('devolve a pagina ao topo quando o logo e clicado', async () => {
+    const user = userEvent.setup()
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    render(<Navbar />)
+
+    // O hero e a folha presa: rolar ate `#inicio` nao sai do lugar, entao o logo
+    // assume a rolagem. O clique cancela a navegacao nativa para nao disputar o
+    // alvo com o proprio `window.scrollTo`.
+    await user.click(screen.getByRole('link', { name: /transfertool/i }))
+
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0 })
+    expect(window.location.hash).toBe('')
   })
 
   it('usa icone generico no CTA mobile sem perder o nome acessivel', () => {

@@ -114,7 +114,20 @@ export function Navbar() {
         aria-label={t('nav.ariaLabel')}
         className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-6 sm:px-8 lg:h-18"
       >
-        <a href="#inicio" className="flex items-center gap-2.5" onClick={() => setMenuOpen(false)}>
+        <a
+          href="#inicio"
+          className="flex items-center gap-2.5"
+          onClick={(event) => {
+            // O hero e a primeira folha presa (`position: sticky`), entao quando a
+            // pagina esta rolada ele ja aparece no topo da janela: a rolagem nativa
+            // ate `#inicio` conclui "alvo visivel" e nao sai do lugar. O logo
+            // devolve a pagina ao topo na mao — o `scroll-behavior` do CSS cuida do
+            // suave (e do `auto` sob movimento reduzido).
+            event.preventDefault()
+            setMenuOpen(false)
+            window.scrollTo({ top: 0 })
+          }}
+        >
           <img src={logoUrl} alt="Início" width={40} height={42} className="h-9 w-auto" />
           <span className={`font-display text-lg font-bold tracking-tight ${skin.brand}`}>
             {t('common.brand')}
