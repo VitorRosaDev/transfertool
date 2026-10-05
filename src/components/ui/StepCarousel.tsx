@@ -4,12 +4,24 @@ import {
   useMotionValueEvent,
   useReducedMotion,
   useScroll,
+  useSpring,
   useTransform,
   type MotionValue,
 } from 'framer-motion'
 
 import { stepScroll } from '../../lib/stepScroll'
 import { DeviceFrame, type DeviceKind } from './DeviceFrame'
+
+/**
+ * Mola do scrub de cada video.
+ *
+ * O trilho anda no progresso cru — as quinas entre scrub e slide continuam secas
+ * —, mas o video passa por esta mola antes de virar `currentTime`: assim ele
+ * desliza atras do scroll, sem pular de keyframe em keyframe a cada evento. Um
+ * pouco mais firme que a mola antiga (que amaciava o trilho inteiro) porque aqui
+ * o atraso aparece como o video "chegando depois" do dedo.
+ */
+const VIDEO_SPRING = { stiffness: 170, damping: 28, mass: 0.6 }
 
 interface StepItem {
   key: string
@@ -132,7 +144,10 @@ interface StepPanelProps {
 
 function StepPanel({ item, index, count, progress, scrubEnabled, armed }: StepPanelProps) {
   // Progresso do proprio passo: o video so anda depois que ele preenche a tela.
-  const scrub = useTransform(progress, (value) => stepScroll(value, count).scrub[index])
+  const rawScrub = useTransform(progress, (value) => stepScroll(value, count).scrub[index])
+  // O video le a versao amaciada; o trilho (`x`) e o texto (`reveal`) seguem no
+  // progresso cru, para a troca de passo nao ganhar curva.
+  const scrub = useSpring(rawScrub, VIDEO_SPRING)
   // Presenca do texto: sobe junto com o scrub e cai no slide de saida.
   const reveal = useTransform(progress, (value) => stepScroll(value, count).reveal[index])
   const textOpacity = useTransform(reveal, [0, 0.4], [0, 1])
@@ -176,6 +191,10 @@ interface StepVideoProps {
 function StepVideo({ src, device, scrub, enabled, armed }: StepVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const durationRef = useRef(0)
+  /** Ultimo alvo do scrub (0..1) — a fonte da proxima escrita de `currentTime`. */
+  const targetRef = useRef(0)
+  /** Handle do quadro ja agendado; `0` quando nao ha seek esperando. */
+  const frameRef = useRef(0)
 
   /*
     Trocar o atributo `preload` depois da montagem nao obriga o navegador a
@@ -190,16 +209,35 @@ function StepVideo({ src, device, scrub, enabled, armed }: StepVideoProps) {
     video.load()
   }, [armed])
 
+  /*
+    O `scrub` chega amaciado por uma mola (ver `StepPanel`). Em vez de escrever o
+    `currentTime` a cada evento — o que fazia o encoder pular de keyframe em
+    keyframe —, o alvo so fica guardado e a escrita sai **uma por quadro**, no
+    `requestAnimationFrame`. Enquanto um seek ainda corre (`seeking`) a escrita
+    espera: disparar em cima do anterior faz o navegador cancelar o seek pela
+    metade e apresentar pouquissimos quadros na tela. Eventos que chegam durante a
+    espera nao se acumulam — so trocam o alvo.
+  */
   useMotionValueEvent(scrub, 'change', (value) => {
     if (!enabled) return
-    const video = videoRef.current
-    if (!video || durationRef.current <= 0 || video.readyState < 1) return
+    targetRef.current = value
+    if (frameRef.current) return
 
-    const next = value * durationRef.current
-    if (Math.abs(video.currentTime - next) > 0.03) {
-      video.currentTime = next
-    }
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = 0
+
+      const video = videoRef.current
+      if (!video || durationRef.current <= 0 || video.readyState < 1) return
+
+      const next = targetRef.current * durationRef.current
+      if (!video.seeking && Math.abs(video.currentTime - next) > 0.001) {
+        video.currentTime = next
+      }
+    })
   })
+
+  // Um quadro agendado nao pode escrever no video depois de o componente sair.
+  useEffect(() => () => cancelAnimationFrame(frameRef.current), [])
 
   return (
     <div className="flex justify-center">
@@ -212,7 +250,13 @@ function StepVideo({ src, device, scrub, enabled, armed }: StepVideoProps) {
           preload={armed ? 'auto' : 'metadata'}
           aria-hidden="true"
           onLoadedMetadata={(event) => {
-            durationRef.current = event.currentTarget.duration
+            const video = event.currentTarget
+            durationRef.current = video.duration
+            // A mola pode ter andado antes de a duracao chegar; sem esta escrita o
+            // video ficaria no primeiro quadro ate o proximo evento de scroll.
+            if (enabled && durationRef.current > 0) {
+              video.currentTime = targetRef.current * durationRef.current
+            }
           }}
           className="h-full w-full object-cover"
         />
