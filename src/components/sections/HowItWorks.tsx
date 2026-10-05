@@ -9,13 +9,18 @@ import step5 from '../../assets/videos/Step_5.mp4'
 import { Section } from '../ui/Section'
 import { StepCarousel } from '../ui/StepCarousel'
 
-/** Passos em ordem, com o video de demonstracao correspondente. */
+/**
+ * Passos em ordem, com o video de demonstracao correspondente e o aparelho que
+ * ele retrata: os tres primeiros passos rodam no celular (retrato 574x1280) e os
+ * dois ultimos, no computador (paisagem 1202x720) — o `device` escolhe a moldura
+ * com a razao certa para cada um.
+ */
 const STEPS = [
-  { id: 'montar', video: step1 },
-  { id: 'fechar', video: step2 },
-  { id: 'exportar', video: step3 },
-  { id: 'importar', video: step4 },
-  { id: 'automatizar', video: step5 },
+  { id: 'montar', video: step1, device: 'phone' },
+  { id: 'fechar', video: step2, device: 'phone' },
+  { id: 'exportar', video: step3, device: 'phone' },
+  { id: 'importar', video: step4, device: 'desktop' },
+  { id: 'automatizar', video: step5, device: 'desktop' },
 ] as const
 
 /**
@@ -28,12 +33,13 @@ const STEPS = [
 export function HowItWorks() {
   const { t } = useTranslation()
 
-  const items = STEPS.map(({ id, video }) => ({
+  const items = STEPS.map(({ id, video, device }) => ({
     key: id,
     label: t(`howItWorks.steps.${id}.label`),
     title: t(`howItWorks.steps.${id}.title`),
     text: t(`howItWorks.steps.${id}.text`),
     video,
+    device,
   }))
 
   return (
