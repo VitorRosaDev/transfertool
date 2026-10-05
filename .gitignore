@@ -46,3 +46,9 @@ Thumbs.db
 
 # --- Vite / Vitest ---
 .vite
+
+# --- Notas de trabalho (locais, fora do repositorio) ---
+# O plano da sessao e o relatorio do projeto sao documentos de trabalho do autor:
+# ficam no disco, mas nao entram no historico do repositorio publico.
+PLAN.md
+PROJECT_REPORT.md
