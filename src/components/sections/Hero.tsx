@@ -1,3 +1,5 @@
+import { lazy, Suspense } from 'react'
+
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 
@@ -8,7 +10,16 @@ import { useTypewriter } from '../../lib/useTypewriter'
 import { buttonClass } from '../ui/buttonClass'
 import { ShapeGrid } from '../ui/ShapeGrid'
 import { Stack } from '../ui/Stack'
-import { TransferCoreCanvas } from './TransferCoreCanvas'
+
+/**
+ * O nucleo 3D (`three` + React Three Fiber) responde por cerca de um terco do
+ * JavaScript da pagina e e puramente decorativo: entra por import dinamico, em
+ * chunk proprio, depois do primeiro quadro. O texto e o CTA do hero — o que o
+ * visitante ve primeiro — nao esperam por ele.
+ */
+const TransferCoreCanvas = lazy(() =>
+  import('./TransferCoreCanvas').then((module) => ({ default: module.TransferCoreCanvas })),
+)
 
 /**
  * Hero: a promessa em uma frase e o nucleo visual da transferencia.
@@ -151,7 +162,11 @@ export function Hero() {
 
           <div className="relative order-1 mx-auto w-full max-w-md lg:order-2">
             <div className="relative h-60 w-full sm:h-90 lg:h-100">
-              <TransferCoreCanvas className="absolute inset-0 h-full w-full" />
+              {/* A caixa ja reserva a altura do cubo: o fallback vazio nao
+                  desloca nada enquanto o chunk do 3D carrega. */}
+              <Suspense fallback={null}>
+                <TransferCoreCanvas className="absolute inset-0 h-full w-full" />
+              </Suspense>
             </div>
 
             <motion.p
