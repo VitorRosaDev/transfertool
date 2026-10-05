@@ -84,6 +84,14 @@ if (!('ResizeObserver' in globalThis)) {
   globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver
 }
 
+/*
+  jsdom nao implementa a selecao de recurso de midia: `HTMLMediaElement.load()`
+  so existe para registrar "nao implementado" no console. O carrossel chama
+  `load()` quando o download dos videos e liberado, entao o stub mantem a saida
+  limpa — ele nao toca em nada que os testes observam (atributos do elemento).
+*/
+HTMLMediaElement.prototype.load = function load(): void {}
+
 // Idioma deterministico em todos os testes e isolamento de storage.
 beforeEach(async () => {
   await i18n.changeLanguage('pt-BR')

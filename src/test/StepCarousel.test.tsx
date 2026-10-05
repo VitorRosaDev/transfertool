@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { StepCarousel } from '../components/ui/StepCarousel'
@@ -31,6 +31,57 @@ const ITEMS = [
     device: 'desktop',
   },
 ] as const
+
+/**
+ * Observador controlado: o stub global avisa na hora que o elemento "apareceu",
+ * o que impede ver o estado anterior. Aqui o aviso fica guardado para o teste
+ * dispara-lo quando quiser — e provar os dois lados da espera.
+ */
+function deferredObserver() {
+  const original = globalThis.IntersectionObserver
+  let notify: (() => void) | null = null
+
+  class DeferredObserver {
+    constructor(private readonly callback: IntersectionObserverCallback) {}
+
+    observe(target: Element): void {
+      const rect = target.getBoundingClientRect()
+
+      notify = () =>
+        this.callback(
+          [
+            {
+              isIntersecting: true,
+              intersectionRatio: 1,
+              target,
+              time: 0,
+              boundingClientRect: rect,
+              intersectionRect: rect,
+              rootBounds: null,
+            } as IntersectionObserverEntry,
+          ],
+          this as unknown as IntersectionObserver,
+        )
+    }
+
+    unobserve(): void {}
+
+    disconnect(): void {}
+
+    takeRecords(): IntersectionObserverEntry[] {
+      return []
+    }
+  }
+
+  globalThis.IntersectionObserver = DeferredObserver as unknown as typeof IntersectionObserver
+
+  return {
+    fire: () => notify?.(),
+    restore: () => {
+      globalThis.IntersectionObserver = original
+    },
+  }
+}
 
 describe('StepCarousel', () => {
   beforeEach(() => {
@@ -67,5 +118,26 @@ describe('StepCarousel', () => {
     expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(5)
     // Sem movimento o trilho nao e preso: vira um carrossel de rolagem.
     expect(container.querySelector('.sticky')).toBeNull()
+  })
+
+  it('so manda baixar os videos quando o carrossel se aproxima', async () => {
+    const observer = deferredObserver()
+
+    try {
+      const { container } = render(<StepCarousel items={[...ITEMS]} />)
+      const firstVideo = () => container.querySelector('video')
+
+      // Longe da dobra o navegador le so o cabecalho de cada arquivo.
+      expect(firstVideo()).toHaveAttribute('preload', 'metadata')
+
+      await act(async () => {
+        observer.fire()
+      })
+
+      // Perto de aparecer, o download e liberado — o scrub ja vai achar o quadro.
+      expect(firstVideo()).toHaveAttribute('preload', 'auto')
+    } finally {
+      observer.restore()
+    }
   })
 })

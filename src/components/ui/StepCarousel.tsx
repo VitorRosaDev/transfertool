@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   motion,
   useMotionValueEvent,
@@ -38,12 +38,37 @@ interface StepCarouselProps {
 export function StepCarousel({ items }: StepCarouselProps) {
   const shouldReduceMotion = useReducedMotion()
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const [armed, setArmed] = useState(false)
   const count = items.length
 
   const { scrollYProgress } = useScroll({
     target: wrapperRef,
     offset: ['start start', 'end end'],
   })
+
+  /*
+    Os cinco videos somam quase 4 MB e ficam muito abaixo da dobra: com
+    `preload="auto"` eles baixavam por inteiro no carregamento da pagina. Ate o
+    carrossel se aproximar, o navegador le so o cabecalho de cada arquivo
+    (`metadata`); quando a secao chega a uma tela de distancia, o sinal libera o
+    download — a tempo de o scrub encontrar o quadro pronto. O observador para no
+    primeiro aviso: a decisao e definitiva e nao ha o que remeber.
+  */
+  useEffect(() => {
+    const node = wrapperRef.current
+    if (!node) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) setArmed(true)
+      },
+      { rootMargin: '100% 0px' },
+    )
+
+    observer.observe(node)
+
+    return () => observer.disconnect()
+  }, [])
 
   const x = useTransform(scrollYProgress, (progress) => `${stepScroll(progress, count).xVw}vw`)
 
@@ -59,6 +84,7 @@ export function StepCarousel({ items }: StepCarouselProps) {
                 count={count}
                 progress={scrollYProgress}
                 scrubEnabled={false}
+                armed={armed}
               />
             </li>
           ))}
@@ -79,6 +105,7 @@ export function StepCarousel({ items }: StepCarouselProps) {
                 count={count}
                 progress={scrollYProgress}
                 scrubEnabled
+                armed={armed}
               />
             </li>
           ))}
@@ -100,9 +127,10 @@ interface StepPanelProps {
   count: number
   progress: MotionValue<number>
   scrubEnabled: boolean
+  armed: boolean
 }
 
-function StepPanel({ item, index, count, progress, scrubEnabled }: StepPanelProps) {
+function StepPanel({ item, index, count, progress, scrubEnabled, armed }: StepPanelProps) {
   // Progresso do proprio passo: o video so anda depois que ele preenche a tela.
   const scrub = useTransform(progress, (value) => stepScroll(value, count).scrub[index])
   // Presenca do texto: sobe junto com o scrub e cai no slide de saida.
@@ -113,7 +141,13 @@ function StepPanel({ item, index, count, progress, scrubEnabled }: StepPanelProp
   return (
     <div className="flex h-full w-full items-center justify-center px-6 py-10 sm:px-12 sm:py-14 lg:px-20">
       <div className="grid w-full max-w-6xl items-center gap-8 sm:gap-10 lg:grid-cols-2 lg:gap-16">
-        <StepVideo device={item.device} src={item.video} scrub={scrub} enabled={scrubEnabled} />
+        <StepVideo
+          device={item.device}
+          src={item.video}
+          scrub={scrub}
+          enabled={scrubEnabled}
+          armed={armed}
+        />
 
         <motion.div style={scrubEnabled ? { opacity: textOpacity, y: textY } : undefined}>
           <p className="mono-label text-ink-500">{item.label}</p>
@@ -135,11 +169,26 @@ interface StepVideoProps {
   /** Progresso do video do proprio passo (0 parado, 1 no ultimo frame). */
   scrub: MotionValue<number>
   enabled: boolean
+  /** O carrossel ja se aproximou da janela: o arquivo pode ser baixado por inteiro. */
+  armed: boolean
 }
 
-function StepVideo({ src, device, scrub, enabled }: StepVideoProps) {
+function StepVideo({ src, device, scrub, enabled, armed }: StepVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const durationRef = useRef(0)
+
+  /*
+    Trocar o atributo `preload` depois da montagem nao obriga o navegador a
+    refazer a selecao de recurso; o `load()` forca. So roda uma vez, quando o
+    carrossel se aproxima — antes disso o quadro nem chegou a ser buscado.
+  */
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !armed) return
+
+    video.preload = 'auto'
+    video.load()
+  }, [armed])
 
   useMotionValueEvent(scrub, 'change', (value) => {
     if (!enabled) return
@@ -160,7 +209,7 @@ function StepVideo({ src, device, scrub, enabled }: StepVideoProps) {
           src={src}
           muted
           playsInline
-          preload="auto"
+          preload={armed ? 'auto' : 'metadata'}
           aria-hidden="true"
           onLoadedMetadata={(event) => {
             durationRef.current = event.currentTarget.duration
